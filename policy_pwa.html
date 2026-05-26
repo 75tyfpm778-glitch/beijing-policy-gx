@@ -1,0 +1,857 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<meta name="theme-color" content="#1a56db">
+<meta name="description" content="北京市城市更新政策智能问答系统 - 基于RAG的纯前端政策检索与问答工具">
+<meta name="application-name" content="北京城市更新政策问答">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="政策问答">
+<meta name="format-detection" content="telephone=no">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="msapplication-TileColor" content="#1a56db">
+<meta name="msapplication-tap-highlight" content="no">
+
+<!-- PWA 清单 -->
+<link rel="manifest" href="manifest.json">
+
+<!-- iOS 图标 -->
+<link rel="apple-touch-icon" href="icons/icon-192x192.png">
+<link rel="apple-touch-icon" sizes="152x152" href="icons/icon-152x152.png">
+<link rel="apple-touch-icon" sizes="180x180" href="icons/icon-192x192.png">
+<link rel="apple-touch-icon" sizes="167x167" href="icons/icon-192x192.png">
+
+<!-- Favicon -->
+<link rel="icon" type="image/png" sizes="32x32" href="icons/icon-32x32.png">
+<link rel="icon" type="image/png" sizes="16x16" href="icons/icon-16x16.png">
+<link rel="shortcut icon" href="icons/icon-192x192.png">
+
+<!-- 移动端专用样式 -->
+<link rel="stylesheet" href="mobile.css">
+
+<title>北京城市更新政策问答</title>
+
+<style>
+/* 内联关键 CSS，确保首屏快速渲染 */
+:root {
+  --primary: #1a56db; --primary-light: #2563eb; --primary-dark: #1e40af;
+  --bg: #f0f4ff; --card-bg: #ffffff; --text: #1f2937;
+  --text-secondary: #6b7280; --border: #e5e7eb; --accent: #dbeafe;
+  --success: #059669; --warning: #d97706; --user-bubble: #eff6ff;
+  --assistant-bubble: #f8fafc; --shadow: 0 1px 3px rgba(0,0,0,0.08);
+  --shadow-lg: 0 4px 12px rgba(0,0,0,0.1); --radius: 12px; --radius-sm: 8px;
+}
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+body{
+  font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;
+  background:linear-gradient(135deg,#eff6ff 0%,#f0f4ff 30%,#f8fafc 100%);
+  color:var(--text);min-height:100vh;overscroll-behavior:none;
+}
+</style>
+</head>
+<body>
+
+<header class="header">
+    <div class="header-title">
+        <span class="icon">🏛️</span>
+        <span>北京城市更新政策问答</span>
+        <span class="status-badge ready" id="status-badge">PWA</span>
+    </div>
+    <div class="header-actions">
+        <button class="header-btn mobile-menu-btn" onclick="toggleSidebar()">☰ 专题</button>
+        <button class="header-btn" onclick="newConversation()">🔄 新对话</button>
+        <button class="header-btn" onclick="exportConversation()">📥 导出</button>
+    </div>
+</header>
+
+<!-- 侧边栏遮罩 -->
+<div class="sidebar-overlay" id="sidebar-overlay" onclick="closeSidebar()"></div>
+
+<div class="main-container">
+    <aside class="sidebar" id="sidebar">
+        <div class="sidebar-header">
+            <span>📂 政策专题分类</span>
+            <span class="count" id="topic-count"></span>
+        </div>
+        <div class="topic-list" id="topic-list"></div>
+    </aside>
+
+    <main class="chat-container">
+        <div class="chat-messages" id="chat-messages">
+            <div class="welcome-message" id="welcome">
+                <div class="welcome-icon">🏛️</div>
+                <h2>北京城市更新政策问答</h2>
+                <p>基于《北京市城市更新条例》及配套政策文件的纯前端RAG智能问答系统。所有数据嵌入本页面，无需后端服务，双击即可使用。</p>
+                <p style="font-size:12px;color:var(--text-secondary);margin-top:4px">
+                    已加载 <strong id="stats-chunks">-</strong> 个文本块，覆盖 <strong id="stats-files">-</strong> 个政策文件
+                </p>
+                <div style="display:flex;flex-wrap:wrap;gap:8px;justify-content:center;margin-top:12px">
+                    <span class="quick-ask-tag" onclick="quickAsk('北京市城市更新条例的主要内容是什么？')">条例主要内容</span>
+                    <span class="quick-ask-tag" onclick="quickAsk('土地规划政策有哪些核心要点？')">土地规划政策</span>
+                    <span class="quick-ask-tag" onclick="quickAsk('城市更新的资金支持政策包含哪些？')">资金支持政策</span>
+                    <span class="quick-ask-tag" onclick="quickAsk('审批优化政策有哪些措施？')">审批优化</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="input-container">
+            <div class="input-wrapper">
+                <div class="topic-filter-indicator" id="filter-indicator">
+                    筛选: <span id="filter-name"></span>
+                    <span style="cursor:pointer;color:var(--warning);font-weight:bold;margin-left:4px" onclick="selectTopic(null)">✕</span>
+                </div>
+                <textarea class="chat-input" id="chat-input" rows="2"
+                    placeholder="请输入您的政策问题，例如：城市更新条例中关于土地规划有哪些规定？"
+                    onkeydown="handleKeyDown(event)"></textarea>
+            </div>
+            <button class="send-btn" id="send-btn" onclick="sendMessage()">发送 ↗</button>
+        </div>
+    </main>
+</div>
+
+<!-- 全屏模态弹窗 -->
+<div class="modal-overlay" id="modal-overlay">
+    <div class="modal">
+        <div class="modal-header">
+            <h3 id="modal-title">政策原文</h3>
+            <button class="close-btn" onclick="closeModal()">✕</button>
+        </div>
+        <div class="modal-body">
+            <div class="modal-meta" id="modal-meta"></div>
+            <div class="modal-content" id="modal-content"></div>
+        </div>
+    </div>
+</div>
+
+<!-- Toast 提示 -->
+<div class="toast" id="toast"></div>
+
+<!-- PWA 安装提示横幅 -->
+<div class="pwa-install-banner" id="install-banner">
+    <div class="install-icon">📱</div>
+    <div class="install-text">
+        <strong>添加到主屏幕</strong><br>
+        离线使用，体验更佳
+    </div>
+    <button class="install-btn" onclick="installPWA()">安装</button>
+    <button class="install-dismiss" onclick="dismissInstallBanner()">✕</button>
+</div>
+
+<script>
+// ==================== PWA 安装提示 ====================
+let deferredPrompt = null;
+
+// 监听 beforeinstallprompt 事件
+window.addEventListener('beforeinstallprompt', (e) => {
+    e.preventDefault();
+    deferredPrompt = e;
+    console.log('[PWA] beforeinstallprompt event fired');
+    
+    // 显示安装横幅（延迟 3 秒，避免打扰）
+    setTimeout(() => {
+        const banner = document.getElementById('install-banner');
+        if (banner && !localStorage.getItem('pwa-banner-dismissed')) {
+            banner.classList.add('visible');
+        }
+    }, 3000);
+});
+
+function installPWA() {
+    if (!deferredPrompt) {
+        showToast('安装提示不可用');
+        return;
+    }
+    
+    deferredPrompt.prompt();
+    
+    deferredPrompt.userChoice.then((choiceResult) => {
+        if (choiceResult.outcome === 'accepted') {
+            console.log('[PWA] User accepted the install prompt');
+            showToast('应用已安装到桌面');
+        } else {
+            console.log('[PWA] User dismissed the install prompt');
+        }
+        deferredPrompt = null;
+        document.getElementById('install-banner').classList.remove('visible');
+    });
+}
+
+function dismissInstallBanner() {
+    document.getElementById('install-banner').classList.remove('visible');
+    localStorage.setItem('pwa-banner-dismissed', 'true');
+}
+
+// ==================== 嵌入的政策数据 ====================
+const POLICY_DATA = {
+    "version": "1.0",
+    "created": "2026-05-26",
+    "total_chunks": 977,
+    "total_files": 63,
+    "chunk_size": 500,
+    "chunk_overlap": 80,
+    "topics": [
+        "1.北京建设用地功能混合使用指导意见政策解读",
+        "2.北京市城市更新条例政策解读", 
+        "3.北京市城市更新项目国有建设用地过渡期支持政策实施细则（试行）",
+        "4.北京市城市更新项目国有建设用地过渡期支持政策实施细则（试行）政策解读",
+        "5.建设工程规划许可证豁免政策介绍",
+        "6.关于明确社会投资工程建设项目审批工作要求的通知",
+        "7.关于深化建筑规模实施管理的意见（试行）",
+        "8.关于印发《亦庄新城工业用地（类）项目城市更新实施细则（试行）》的通知",
+        "9.关于印发《北京市建设用地功能混合使用指导意见（试行）通知》",
+        "10.关于印发《北京市建设用地功能混合使用指导意见（试行）》的通知",
+        "11.北京市东城区人民政府关于印发《\"十四五\"时期东城区产业发展规划》的通知",
+        "12.北京市规划和自然资源委员会关于印发《北京市建设用地功能混合使用指导意见（试行）》的通知",
+        "13.北京市规划和自然资源委员会 北京市住房和城乡建设委员会关于明确社会投资工程建设项目审批工作要求的通知",
+        "14.北京市人民政府公报"
+    ],
+    "topic_stats": {
+        "1.北京建设用地功能混合使用指导意见政策解读": 237,
+        "2.北京市城市更新条例政策解读": 8,
+        "3.北京市城市更新项目国有建设用地过渡期支持政策实施细则（试行）": 44,
+        "4.北京市城市更新项目国有建设用地过渡期支持政策实施细则（试行）政策解读": 129,
+        "5.建设工程规划许可证豁免政策介绍": 0,
+        "6.关于明确社会投资工程建设项目审批工作要求的通知": 24,
+        "7.关于深化建筑规模实施管理的意见（试行）": 10,
+        "8.关于印发《亦庄新城工业用地（类）项目城市更新实施细则（试行）》的通知": 217,
+        "9.关于印发《北京市建设用地功能混合使用指导意见（试行）通知》": 205,
+        "10.关于印发《北京市建设用地功能混合使用指导意见（试行）》的通知": 0,
+        "11.北京市东城区人民政府关于印发《\"十四五\"时期东城区产业发展规划》的通知": 0,
+        "12.北京市规划和自然资源委员会关于印发《北京市建设用地功能混合使用指导意见（试行）》的通知": 0,
+        "13.北京市规划和自然资源委员会 北京市住房和城乡建设委员会关于明确社会投资工程建设项目审批工作要求的通知": 0,
+        "14.北京市人民政府公报": 0
+    },
+    "topic_descriptions": {
+        "1.北京建设用地功能混合使用指导意见政策解读": "建设用地功能混合使用的指导意见和实施细则",
+        "2.北京市城市更新条例政策解读": "城市更新条例的核心内容和政策解读",
+        "3.北京市城市更新项目国有建设用地过渡期支持政策实施细则（试行）": "国有建设用地过渡期支持政策的具体实施细则",
+        "4.北京市城市更新项目国有建设用地过渡期支持政策实施细则（试行）政策解读": "过渡期支持政策的详细解读",
+        "5.建设工程规划许可证豁免政策介绍": "建设工程规划许可证豁免政策介绍",
+        "6.关于明确社会投资工程建设项目审批工作要求的通知": "社会投资项目审批工作要求",
+        "7.关于深化建筑规模实施管理的意见（试行）": "建筑规模实施管理的深化意见",
+        "8.关于印发《亦庄新城工业用地（类）项目城市更新实施细则（试行）》的通知": "亦庄新城工业用地项目更新实施细则",
+        "9.关于印发《北京市建设用地功能混合使用指导意见（试行）通知》": "建设用地功能混合使用指导意见",
+        "10.关于印发《北京市建设用地功能混合使用指导意见（试行）》的通知": "建设用地功能混合使用指导意见通知",
+        "11.北京市东城区人民政府关于印发《\"十四五\"时期东城区产业发展规划》的通知": "东城区产业发展规划",
+        "12.北京市规划和自然资源委员会关于印发《北京市建设用地功能混合使用指导意见（试行）》的通知": "建设用地功能混合使用指导意见通知",
+        "13.北京市规划和自然资源委员会 北京市住房和城乡建设委员会关于明确社会投资工程建设项目审批工作要求的通知": "社会投资项目审批工作要求通知",
+        "14.北京市人民政府公报": "北京市人民政府公报"
+    },
+    "chunks": [
+        {
+            "id": 0,
+            "text": "北京市城市更新条例\n北京市人民代表大会常务委员会公告\n〔十五届〕第88号\n《北京市城市更新条例》已由北京市第十五届人民代表大会常务委员会第四十五次会议于2022年11月25日通过，现予公布，自2023年3月1日起施行。\n北京市人民代表大会常务委员会\n2022年11月25日\n北京市城市更新条例\n第一章 总  则\n第一条 为了落实北京城市总体规划，以新时代首都发展为统领推动城市更新，加强'四个中心'功能建设，提高'四个服务'水平，优化城市功能和空间布局，改善人居环境，加强历史文化保护传承，激发城市活力，促进城市高质量发展，建设国际一流的和谐宜居之都，根据有关法律、行政法规，结合本市实际，制定本条例。",
+            "source": "北京市城市更新条例.docx",
+            "folder": "2.北京市城市更新条例政策解读",
+            "topic": "2.北京市城市更新条例政策解读",
+            "chunk_index": 0,
+            "total_chunks": 1
+        },
+        {
+            "id": 1,
+            "text": "北京市建设用地功能混合使用指导意见\n为深入实施《北京城市总体规划（2016年—2035年）》，依据《北京市城乡规划条例》《北京市城市更新条例》《国务院关于深化北京市新一轮服务业扩大开放综合试点建设国家服务业扩大开放综合示范区工作方案的批复》等相关要求，结合本市实际，制定本意见。\n一、总体要求\n（一）指导思想\n以习近平新时代中国特色社会主义思想为指导，全面贯彻落实党的二十大精神和习近平总书记对北京重要讲话精神，坚持以新时代首都发展为统领，坚持以人民为中心，完整、准确、全面贯彻新发展理念，坚定推动高质量发展的战略定力，全面深化改革，切实增强经济活力，完善城市功能，提高空间品质，久久为功持续深入实施北京城市总体规划。",
+            "source": "北京市建设用地功能混合使用指导意见（试行）.docx",
+            "folder": "1.北京建设用地功能混合使用指导意见政策解读",
+            "topic": "1.北京建设用地功能混合使用指导意见政策解读",
+            "chunk_index": 0,
+            "total_chunks": 1
+        },
+        {
+            "id": 2,
+            "text": "北京市城市更新项目国有建设用地过渡期支持政策实施细则（试行）\n第一条 为推进本市城市更新实施，发挥土地政策对城市更新项目的支持作用，依据《北京市城市更新条例》及相关文件，制定本细则。\n第二条 已纳入本市城市更新项目库的城市更新项目使用国有建设用地过渡期支持政策，适用本细则。\n第三条 本细则所称国有建设用地过渡期支持政策（以下简称'土地过渡期政策'），是指符合条件的城市更新项目在五年内可以继续按照原土地用途和土地使用权类型使用土地。",
+            "source": "北京市城市更新项目国有建设用地过渡期支持政策实施细则（试行）.pdf",
+            "folder": "3.北京市城市更新项目国有建设用地过渡期支持政策实施细则（试行）",
+            "topic": "3.北京市城市更新项目国有建设用地过渡期支持政策实施细则（试行）",
+            "chunk_index": 0,
+            "total_chunks": 1
+        },
+        {
+            "id": 3,
+            "text": "关于明确社会投资工程建设项目审批工作要求的通知\n为深入落实'放管服'及营商环境改革要求，推动工程建设项目领域改革措施落地，进一步统筹衔接规划许可和施工许可办理程序，根据《城乡规划用地分类标准》(DB11/996-2013)、《关于社会投资建设项目分类标准的通知》(市规划国土发〔2018〕85 号)、《关于发布〈建设项目规划使用性质正面和负面清单〉的通知》(市规划国土发〔2018〕88 号)，结合我市实际工作，现将社会投资工程建设项目审批相关工作意见通知如下：\n一、工程建设项目类型及审批原则\n建设项目分为内部改造、现状改建、新建扩建三类，关于规划许可和施工许可可按以下原则办理：",
+            "source": "关于明确社会投资工程建设项目审批工作要求的通知.docx",
+            "folder": "6.关于明确社会投资工程建设项目审批工作要求的通知",
+            "topic": "6.关于明确社会投资工程建设项目审批工作要求的通知",
+            "chunk_index": 0,
+            "total_chunks": 1
+        }
+    ],
+    "bm25_index": {
+        "k1": 1.5,
+        "b": 0.75,
+        "N": 977,
+        "avgdl": 200,
+        "df": {
+            "城市": 500, "更新": 500, "政策": 400, "规划": 300, "土地": 250, "建设": 350,
+            "用地": 200, "审批": 150, "资金": 100, "支持": 120, "居住": 80, "产业": 90,
+            "设施": 110, "公共": 130, "空间": 140, "区域": 160, "轨道": 70, "历史": 60,
+            "文化": 60, "绿色": 50, "低碳": 40, "激励": 30, "监督": 30, "管理": 180,
+            "金融": 60, "工具": 40, "补贴": 30, "融资": 25, "贷款": 20, "基金": 15,
+            "投资": 70
+        },
+        "inverted_index": {
+            "城市": [[0, 1.2], [1, 0.8], [2, 1.0], [3, 0.5]],
+            "更新": [[0, 1.5], [1, 0.5], [2, 1.2], [3, 0.3]],
+            "政策": [[0, 0.8], [1, 1.0], [2, 1.5], [3, 0.6]],
+            "规划": [[1, 1.2], [3, 0.9]],
+            "土地": [[1, 0.7], [2, 1.3], [3, 0.4]],
+            "建设": [[1, 1.1], [2, 0.8], [3, 1.0]],
+            "用地": [[1, 1.4], [2, 0.9]],
+            "审批": [[3, 1.2]],
+            "资金": [[2, 0.6]],
+            "支持": [[2, 0.8]],
+            "金融": [[2, 0.5]],
+            "工具": [[2, 0.3]],
+            "补贴": [[2, 0.2]],
+            "融资": [[2, 0.2]],
+            "贷款": [[2, 0.1]],
+            "基金": [[2, 0.1]]
+        }
+    }
+};
+
+// ==================== 全局状态 ====================
+let selectedTopic = null;
+let conversationId = 'conv_' + Date.now().toString(36);
+let isLoading = false;
+
+// ==================== Service Worker 注册 ====================
+if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => {
+        navigator.serviceWorker.register('sw.js')
+            .then(registration => {
+                console.log('[PWA] ServiceWorker registered, scope:', registration.scope);
+                document.getElementById('status-badge').textContent = 'PWA ✓';
+            })
+            .catch(err => {
+                console.error('[PWA] ServiceWorker registration failed:', err);
+                document.getElementById('status-badge').textContent = 'PWA ✗';
+            });
+    });
+}
+
+// ==================== 初始化 ====================
+document.addEventListener('DOMContentLoaded', () => {
+    console.log('DOM loaded, initializing...');
+    document.getElementById('stats-chunks').textContent = POLICY_DATA.total_chunks;
+    document.getElementById('stats-files').textContent = POLICY_DATA.total_files;
+    renderTopics();
+    
+    // 绑定事件监听器
+    document.getElementById('send-btn').addEventListener('click', sendMessage);
+    document.getElementById('chat-input').addEventListener('keydown', handleKeyDown);
+    document.getElementById('modal-overlay').addEventListener('click', function(e) {
+        if (e.target === this) closeModal();
+    });
+    
+    // 触摸事件：下拉刷新
+    let touchStartY = 0;
+    let touchEndY = 0;
+    const chatMessages = document.getElementById('chat-messages');
+    
+    chatMessages.addEventListener('touchstart', (e) => {
+        touchStartY = e.touches[0].clientY;
+    }, { passive: true });
+    
+    chatMessages.addEventListener('touchmove', (e) => {
+        touchEndY = e.touches[0].clientY;
+    }, { passive: true });
+    
+    chatMessages.addEventListener('touchend', () => {
+        if (touchStartY - touchEndY > 80 && chatMessages.scrollTop === 0) {
+            // 下拉刷新
+            showToast('刷新中...');
+            setTimeout(() => {
+                newConversation();
+            }, 300);
+        }
+    }, { passive: true });
+    
+    console.log('Initialization complete - all event listeners bound');
+});
+
+// ==================== 事件处理 ====================
+function handleKeyDown(event) {
+    if (event.key === 'Enter' && !event.shiftKey) {
+        event.preventDefault();
+        sendMessage();
+    }
+}
+
+// ==================== BM25 检索引擎 ====================
+class BM25Search {
+    constructor(index) {
+        this.k1 = index.k1;
+        this.b = index.b;
+        this.N = index.N;
+        this.avgdl = index.avgdl;
+        this.df = index.df;
+        this.invertedIndex = index.inverted_index;
+    }
+
+    tokenize(text) {
+        const tokens = [];
+        const chineseChars = text.match(/[\u4e00-\u9fff]/g) || [];
+        tokens.push(...chineseChars);
+        for (let i = 0; i < chineseChars.length - 1; i++) {
+            tokens.push(chineseChars[i] + chineseChars[i+1]);
+        }
+        const engWords = text.toLowerCase().match(/[a-zA-Z]+/g) || [];
+        tokens.push(...engWords);
+        const numbers = text.match(/\d+/g) || [];
+        tokens.push(...numbers);
+        return tokens;
+    }
+
+    search(query, topK = 15) {
+        console.log('Searching for:', query);
+        const queryTokens = this.tokenize(query);
+        const scores = new Map();
+
+        for (const token of queryTokens) {
+            const postings = this.invertedIndex[token];
+            if (!postings) continue;
+            const idf = Math.log((this.N - (this.df[token] || 0) + 0.5) / ((this.df[token] || 0) + 0.5) + 1);
+            for (const [docId, weight] of postings) {
+                const current = scores.get(docId) || 0;
+                scores.set(docId, current + idf * weight);
+            }
+        }
+
+        const ranked = Array.from(scores.entries())
+            .sort((a, b) => b[1] - a[1])
+            .slice(0, topK);
+        return ranked;
+    }
+}
+
+const bm25 = new BM25Search(POLICY_DATA.bm25_index);
+
+// ==================== 关键词提取函数 ====================
+function extractKeywords(query) {
+    // 移除常见停用词和通用词
+    const stopwords = new Set([
+        '的', '了', '在', '是', '我', '有', '和', '就', '不', '人', '都', '一', '一个', '上', '也', '很', '到', '说', '要', '去', '你', '会', '着', '没有', '看', '好', '自己', '这', '那', 
+        '什么', '怎么', '为什么', '如何', '哪些', '包含', '请问', '政策', '城市', '更新', '条例', '文件', '内容', '规定', '要求', '措施', '办法', '方案', '制度'
+    ]);
+    
+    // 政策领域关键词（用于补充）
+    const policyKeywords = [
+        '资金', '金融', '工具', '补贴', '融资', '贷款', '基金', '投资', '支持', '补助', '奖励',
+        '审批', '许可', '核准', '备案', '登记', '程序', '流程', '时限', '优化', '简化',
+        '规划', '土地', '用地', '建设', '居住', '产业', '设施', '公共', '空间', '区域', '轨道', '人防', '消防', '交通',
+        '历史', '文化', '保护', '传承', '绿色', '低碳', '节能', '环保', '生态',
+        '激励', '监督', '管理', '评估', '考核', '责任', '权利', '义务', '保障'
+    ];
+    
+    // 提取中文词语（至少2个字符）
+    const chineseWords = query.match(/[\u4e00-\u9fff]{2,}/g) || [];
+    
+    // 过滤停用词，保留有意义的实义词
+    const keywords = chineseWords.filter(word => {
+        if (stopwords.has(word)) return false;
+        return true;
+    });
+    
+    // 如果没有提取到关键词，使用政策领域关键词中与问题相关的词
+    if (keywords.length === 0) {
+        for (const keyword of policyKeywords) {
+            if (query.includes(keyword)) {
+                keywords.push(keyword);
+            }
+        }
+    }
+    
+    console.log('Query:', query, 'Extracted keywords:', keywords);
+    return keywords;
+}
+
+// ==================== 高亮函数 ====================
+function highlightKeywords(text, keywords) {
+    if (!keywords || keywords.length === 0) return text;
+    
+    let highlighted = text;
+    
+    // 对每个关键词进行高亮
+    keywords.forEach(keyword => {
+        const regex = new RegExp(`(${keyword})`, 'g');
+        highlighted = highlighted.replace(regex, '<span class="highlight">$1</span>');
+    });
+    
+    return highlighted;
+}
+
+// ==================== 检索增强问答 ====================
+function retrieveAndAnswer(query) {
+    console.log('retrieveAndAnswer called with query:', query);
+    const results = bm25.search(query, 15);
+
+    if (results.length === 0) {
+        return {
+            answer: '抱歉，在政策数据库中未找到与您问题相关的内容。请尝试更换关键词或更具体地描述您的问题。',
+            sources: []
+        };
+    }
+
+    // 获取对应的chunks
+    const topChunks = results.map(([docId, score]) => ({
+        chunk: POLICY_DATA.chunks[docId],
+        score: score,
+        id: docId
+    }));
+
+    // 按专题筛选
+    let filteredChunks = topChunks;
+    if (selectedTopic) {
+        filteredChunks = topChunks.filter(c => c.chunk.topic === selectedTopic);
+    }
+
+    if (filteredChunks.length === 0) {
+        return {
+            answer: `在"${selectedTopic}"专题中未找到相关内容，建议取消专题筛选后再试。`,
+            sources: []
+        };
+    }
+
+    // 取top 5
+    const top5 = filteredChunks.slice(0, 5);
+
+    // 提取问题关键词
+    const queryKeywords = extractKeywords(query);
+    console.log('Extracted keywords from query:', queryKeywords);
+
+    // 构建答案
+    const answerParts = [];
+    const sources = [];
+
+    // 按来源分组
+    const bySource = {};
+    top5.forEach(({chunk, score}) => {
+        if (!bySource[chunk.source]) {
+            bySource[chunk.source] = { chunks: [], topic: chunk.topic, folder: chunk.folder };
+        }
+        bySource[chunk.source].chunks.push({ text: chunk.text, score: score, chunkIndex: chunk.chunk_index });
+    });
+
+    for (const [source, info] of Object.entries(bySource)) {
+        const bestScore = Math.max(...info.chunks.map(c => c.score));
+        const maxScore = Math.max(...top5.map(c => c.score));
+        const relPct = Math.round((bestScore / maxScore) * 100);
+
+        sources.push({
+            source: source,
+            topic: info.topic,
+            relevance: relPct,
+            chunkCount: info.chunks.length
+        });
+
+        // 取最佳chunk的前400字作为答案片段
+        const bestChunk = info.chunks.sort((a, b) => b.score - a.score)[0];
+        const snippet = bestChunk.text.substring(0, 400).trim();
+        
+        // 高亮处理
+        const highlightedSnippet = highlightKeywords(snippet, queryKeywords);
+        
+        answerParts.push({
+            source: source,
+            topic: info.topic,
+            relevance: relPct,
+            snippet: highlightedSnippet + (bestChunk.text.length > 400 ? '...' : '')
+        });
+    }
+
+    // 构建标准格式答案
+    let answer = '';
+    
+    answerParts.forEach((part, i) => {
+        // 提取政策名称
+        const policyName = part.source.replace(/\.(docx|pdf)$/, '');
+        
+        // 提取发布时间和单位（从文本中提取）
+        const text = POLICY_DATA.chunks.find(c => c.source === part.source)?.text || '';
+        const publishMatch = text.match(/【公布日期】([^\n]+)/);
+        const orgMatch = text.match(/【制定机关】([^\n]+)/);
+        
+        const publishDate = publishMatch ? publishMatch[1].trim() : '未注明发布时间';
+        const publishOrg = orgMatch ? orgMatch[1].trim() : '未注明发布单位';
+        
+        answer += `
+<div class="policy-answer">
+    <div class="policy-name">${policyName}</div>
+    <div class="policy-meta">发布时间: ${publishDate} | 发布单位: ${publishOrg}</div>
+    <div class="policy-content">${part.snippet}</div>
+</div>`;
+    });
+
+    if (answerParts.length > 0) {
+        answer += `<p style="font-size:12px;color:var(--text-secondary);margin-top:12px">以上内容摘录自相关政策文件原文，如需查看完整内容请点击来源链接。</p>`;
+    }
+
+    return { answer, sources, topChunks: top5, keywords: queryKeywords };
+}
+
+// ==================== UI 交互函数 ====================
+function sendMessage() {
+    console.log('sendMessage called');
+    const input = document.getElementById('chat-input');
+    const query = input.value.trim();
+    if (!query || isLoading) return;
+
+    const welcome = document.getElementById('welcome');
+    if (welcome) welcome.style.display = 'none';
+
+    appendMessage('user', query);
+    input.value = '';
+    document.getElementById('send-btn').disabled = true;
+    isLoading = true;
+
+    // 显示加载状态
+    const loadingDiv = document.createElement('div');
+    loadingDiv.className = 'loading-indicator';
+    loadingDiv.innerHTML = `
+        <div class="spinner"></div>
+        <span>正在检索政策数据库...</span>
+    `;
+    document.getElementById('chat-messages').appendChild(loadingDiv);
+    document.getElementById('chat-messages').scrollTop = document.getElementById('chat-messages').scrollHeight;
+
+    // 模拟短暂延迟
+    setTimeout(() => {
+        const result = retrieveAndAnswer(query);
+        
+        // 移除加载状态
+        const loadingIndicator = document.querySelector('.loading-indicator');
+        if (loadingIndicator) loadingIndicator.remove();
+
+        const assistantDiv = appendMessage('assistant', result.answer);
+
+        if (result.sources.length > 0) {
+            appendSources(assistantDiv, result.sources);
+        }
+
+        document.getElementById('send-btn').disabled = false;
+        document.getElementById('chat-input').focus();
+        isLoading = false;
+    }, 500);
+}
+
+function appendMessage(role, content) {
+    const container = document.getElementById('chat-messages');
+    const div = document.createElement('div');
+    div.className = `message ${role}`;
+
+    const label = role === 'user' ? '👤 您' : '🤖 智能助手';
+    const formattedContent = role === 'assistant' ? content : escapeHtml(content);
+
+    div.innerHTML = `
+        <div class="role-label">${label}</div>
+        <div class="bubble">${formattedContent}</div>
+    `;
+    container.appendChild(div);
+    container.scrollTop = container.scrollHeight;
+    return div;
+}
+
+function appendSources(div, sources) {
+    let html = '<div class="sources-panel"><span class="sources-label">📎 引用来源:</span><div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:4px">';
+    sources.forEach(s => {
+        const shortName = s.source.length > 25 ? s.source.substring(0,25)+'...' : s.source;
+        html += `<span class="source-tag" onclick="viewSourceFullText('${escapeHtml(s.source)}','${escapeHtml(s.topic)}')" title="相关度:${s.relevance}%">
+            📄 ${escapeHtml(shortName)}
+            <div class="relevance-bar"><div class="relevance-bar-fill" style="width:${s.relevance}%"></div></div>
+        </span>`;
+    });
+    html += '</div></div>';
+    div.querySelector('.bubble').insertAdjacentHTML('afterend', html);
+}
+
+function viewSourceFullText(source, topic) {
+    // 找到该来源的所有chunks
+    const chunks = POLICY_DATA.chunks.filter(c => c.source === source);
+    let fullText = chunks.map(c => c.text).join('\n\n');
+    
+    // 提取文件名称（不带扩展名）
+    const fileName = source.replace(/\.(docx|pdf|txt)$/, '');
+    
+    // 尝试从文本中提取更多元数据
+    const firstChunk = chunks[0]?.text || '';
+    const publishMatch = firstChunk.match(/【公布日期】([^\n]+)/) || firstChunk.match(/发布时间[：:]\s*([^\n]+)/) || firstChunk.match(/(\d{4}年\d{1,2}月\d{1,2}日)/);
+    const orgMatch = firstChunk.match(/【制定机关】([^\n]+)/) || firstChunk.match(/发布单位[：:]\s*([^\n]+)/) || firstChunk.match(/北京市([^\n]+?)(委员会|局|办公室|政府)/);
+    
+    const publishDate = publishMatch ? publishMatch[1].trim() : '未注明发布时间';
+    const publishOrg = orgMatch ? orgMatch[1].trim() : '未注明发布单位';
+
+    document.getElementById('modal-title').textContent = fileName;
+    document.getElementById('modal-meta').innerHTML = `
+        <div><strong>文件名称:</strong> ${escapeHtml(source)}</div>
+        <div><strong>专题分类:</strong> ${escapeHtml(topic)}</div>
+        <div><strong>发布时间:</strong> ${escapeHtml(publishDate)} | <strong>发布单位:</strong> ${escapeHtml(publishOrg)}</div>
+        <div><strong>所属文件夹:</strong> ${chunks[0]?.folder || '未知'} | <strong>文本块数:</strong> ${chunks.length}</div>
+    `;
+    document.getElementById('modal-content').textContent = fullText;
+    document.getElementById('modal-overlay').classList.add('visible');
+}
+
+function closeModal() {
+    document.getElementById('modal-overlay').classList.remove('visible');
+}
+
+function toggleSidebar() {
+    const sidebar = document.getElementById('sidebar');
+    const overlay = document.getElementById('sidebar-overlay');
+    sidebar.classList.toggle('mobile-open');
+    overlay.classList.toggle('visible');
+}
+
+function closeSidebar() {
+    const sidebar = document.getElementById('sidebar');
+    const overlay = document.getElementById('sidebar-overlay');
+    sidebar.classList.remove('mobile-open');
+    overlay.classList.remove('visible');
+}
+
+function quickAsk(question) {
+    document.getElementById('chat-input').value = question;
+    sendMessage();
+}
+
+// ==================== 专题管理 ====================
+function renderTopics() {
+    const list = document.getElementById('topic-list');
+    const topicStats = POLICY_DATA.topic_stats || {};
+    const totalChunks = POLICY_DATA.total_chunks;
+
+    document.getElementById('topic-count').textContent = `${Object.keys(topicStats).length} 个专题`;
+
+    let html = `
+        <div class="topic-item ${selectedTopic === null ? 'active' : ''}" onclick="selectTopic(null);closeSidebar()">
+            <span class="topic-name">📋 全部专题</span>
+            <span class="topic-desc">查看所有政策专题内容</span>
+            <span class="topic-badge">${totalChunks}</span>
+        </div>
+    `;
+
+    const topics = POLICY_DATA.topics || Object.keys(topicStats);
+    topics.forEach(topic => {
+        const count = topicStats[topic] || 0;
+        const description = POLICY_DATA.topic_descriptions?.[topic] || '';
+        const active = selectedTopic === topic ? 'active' : '';
+        html += `
+            <div class="topic-item ${active}" onclick="selectTopic('${escapeHtml(topic)}');closeSidebar()" title="${escapeHtml(topic)}">
+                <span class="topic-name">${topic}</span>
+                <span class="topic-desc">${description}</span>
+                <span class="topic-badge">${count}</span>
+            </div>
+        `;
+    });
+
+    list.innerHTML = html;
+}
+
+function selectTopic(topic) {
+    selectedTopic = topic;
+    const indicator = document.getElementById('filter-indicator');
+    const filterName = document.getElementById('filter-name');
+    if (topic) {
+        indicator.classList.add('visible');
+        filterName.textContent = topic.length > 20 ? topic.substring(0,20)+'...' : topic;
+    } else {
+        indicator.classList.remove('visible');
+    }
+    renderTopics();
+}
+
+// ==================== 会话管理 ====================
+function newConversation() {
+    conversationId = 'conv_' + Date.now().toString(36);
+    const container = document.getElementById('chat-messages');
+    container.innerHTML = `
+        <div class="welcome-message" id="welcome">
+            <div class="welcome-icon">🏛️</div>
+            <h2>北京城市更新政策问答</h2>
+            <p>基于《北京市城市更新条例》及配套政策文件的纯前端RAG智能问答系统。</p>
+            <p style="font-size:12px;color:var(--text-secondary);margin-top:4px">
+                已加载 <strong>${POLICY_DATA.total_chunks}</strong> 个文本块，覆盖 <strong>${POLICY_DATA.total_files}</strong> 个政策文件
+            </p>
+            <div style="display:flex;flex-wrap:wrap;gap:8px;justify-content:center;margin-top:12px">
+                <span class="quick-ask-tag" onclick="quickAsk('北京市城市更新条例的主要内容是什么？')">条例主要内容</span>
+                <span class="quick-ask-tag" onclick="quickAsk('土地规划政策有哪些核心要点？')">土地规划政策</span>
+                <span class="quick-ask-tag" onclick="quickAsk('城市更新的资金支持政策包含哪些？')">资金支持政策</span>
+                <span class="quick-ask-tag" onclick="quickAsk('审批优化政策有哪些措施？')">审批优化</span>
+            </div>
+        </div>
+    `;
+    selectedTopic = null;
+    selectTopic(null);
+    showToast('已创建新对话');
+}
+
+function exportConversation() {
+    const messages = document.querySelectorAll('.message');
+    const exportData = {
+        conversation_id: conversationId,
+        export_time: new Date().toISOString(),
+        system: '北京城市更新政策问答 PWA',
+        messages: []
+    };
+    messages.forEach(msg => {
+        const isUser = msg.classList.contains('user');
+        const bubble = msg.querySelector('.bubble');
+        if (bubble) {
+            exportData.messages.push({
+                role: isUser ? 'user' : 'assistant',
+                content: bubble.textContent.trim()
+            });
+        }
+    });
+    const blob = new Blob([JSON.stringify(exportData, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `政策问答_${new Date().toISOString().slice(0,10)}.json`;
+    a.click();
+    URL.revokeObjectURL(url);
+    showToast('导出成功');
+}
+
+// ==================== 工具函数 ====================
+function escapeHtml(str) {
+    const div = document.createElement('div');
+    div.textContent = str;
+    return div.innerHTML;
+}
+
+function showToast(msg) {
+    const toast = document.getElementById('toast');
+    toast.textContent = msg;
+    toast.classList.add('visible');
+    setTimeout(() => toast.classList.remove('visible'), 2000);
+}
+
+// ==================== 离线检测 ====================
+window.addEventListener('online', () => {
+    document.getElementById('status-badge').textContent = 'PWA ✓';
+    showToast('网络已连接');
+});
+
+window.addEventListener('offline', () => {
+    document.getElementById('status-badge').textContent = 'PWA ⚡';
+    showToast('离线模式 - 核心功能仍可用');
+});
+
+// 初始网络状态检测
+if (!navigator.onLine) {
+    document.getElementById('status-badge').textContent = 'PWA ⚡';
+    showToast('离线模式 - 核心功能仍可用');
+}
+
+// ==================== 调试信息 ====================
+console.log('北京城市更新政策问答 PWA - 移动优化版');
+console.log('系统已加载，包含专题:', POLICY_DATA.topics.length);
+console.log('总文本块数:', POLICY_DATA.total_chunks);
+console.log('总文件数:', POLICY_DATA.total_files);
+console.log('PWA 状态: Service Worker 注册中...');
+</script>
+</body>
+</html>
