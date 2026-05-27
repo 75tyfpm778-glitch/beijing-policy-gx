@@ -7,6 +7,7 @@ on:
 
 permissions:
   contents: write
+  pages: write
 
 jobs:
   deploy:
@@ -23,3 +24,12 @@ jobs:
           publish_branch: gh-pages
           force_orphan: true
           commit_message: 'Deploy: 北京市城市更新政策问答系统'
+
+      - name: Enable GitHub Pages
+        run: |
+          curl -s -X PUT \
+            -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" \
+            -H "Accept: application/vnd.github+json" \
+            -H "X-GitHub-Api-Version: 2022-11-28" \
+            "https://api.github.com/repos/${{ github.repository }}/pages" \
+            -d '{"source":{"branch":"gh-pages","path":"/"}}'
