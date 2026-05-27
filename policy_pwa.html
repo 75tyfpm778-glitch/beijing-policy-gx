@@ -254,6 +254,283 @@ body{
   border-radius: 3px;
   font-weight: 500;
 }
+
+/* ==================== LLM设置面板 ==================== */
+.settings-toggle {
+  position: fixed;
+  top: 76px;
+  right: 16px;
+  z-index: 100;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: var(--card-bg);
+  border: 1px solid var(--border);
+  box-shadow: var(--shadow-lg);
+  cursor: pointer;
+  font-size: 18px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: transform 0.3s;
+}
+.settings-toggle:hover { transform: scale(1.1); }
+.settings-toggle.active { background: var(--primary); color: #fff; border-color: var(--primary); }
+
+.settings-panel {
+  position: fixed;
+  top: 76px;
+  right: 68px;
+  z-index: 101;
+  width: 380px;
+  max-width: calc(100vw - 90px);
+  max-height: 80vh;
+  overflow-y: auto;
+  background: var(--card-bg);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-lg);
+  padding: 20px;
+  display: none;
+}
+.settings-panel.visible { display: block; }
+
+.settings-panel h3 {
+  font-size: 16px;
+  color: var(--text);
+  margin-bottom: 16px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid var(--border);
+}
+
+.settings-group { margin-bottom: 14px; }
+.settings-group label {
+  display: block;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text);
+  margin-bottom: 4px;
+}
+.settings-group input[type="text"],
+.settings-group input[type="password"] {
+  width: 100%;
+  padding: 8px 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  font-size: 13px;
+  color: var(--text);
+  background: #f9fafb;
+  transition: border-color 0.2s;
+}
+.settings-group input:focus {
+  outline: none;
+  border-color: var(--primary);
+  background: #fff;
+}
+
+.settings-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 16px;
+  align-items: center;
+}
+
+.btn-primary {
+  padding: 8px 20px;
+  background: var(--primary);
+  color: #fff;
+  border: none;
+  border-radius: var(--radius-sm);
+  font-size: 14px;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+.btn-primary:hover { background: var(--primary-dark); }
+
+.btn-secondary {
+  padding: 8px 16px;
+  background: #fff;
+  color: var(--text-secondary);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  font-size: 13px;
+  cursor: pointer;
+}
+.btn-secondary:hover { background: #f3f4f6; }
+
+.ai-toggle-wrapper {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+/* 开关样式 */
+.toggle-switch {
+  position: relative;
+  width: 48px;
+  height: 26px;
+  flex-shrink: 0;
+}
+.toggle-switch input { display: none; }
+.toggle-slider {
+  position: absolute;
+  inset: 0;
+  background: #d1d5db;
+  border-radius: 26px;
+  cursor: pointer;
+  transition: background 0.3s;
+}
+.toggle-slider::before {
+  content: '';
+  position: absolute;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: #fff;
+  top: 3px;
+  left: 3px;
+  transition: transform 0.3s;
+}
+.toggle-switch input:checked + .toggle-slider { background: var(--primary); }
+.toggle-switch input:checked + .toggle-slider::before { transform: translateX(22px); }
+
+.toggle-label {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text);
+}
+
+/* ==================== LLM 生成回答样式 ==================== */
+.llm-answer {
+  background: linear-gradient(135deg, #f0f9ff 0%, #faf5ff 100%);
+  border: 2px solid var(--primary-light);
+  border-radius: var(--radius);
+  padding: 20px;
+  margin: 16px 0;
+  position: relative;
+}
+
+.llm-answer .llm-badge {
+  display: inline-block;
+  background: linear-gradient(135deg, var(--primary), #7c3aed);
+  color: #fff;
+  font-size: 11px;
+  font-weight: 600;
+  padding: 3px 10px;
+  border-radius: 20px;
+  margin-bottom: 14px;
+  letter-spacing: 0.5px;
+}
+
+.llm-answer .llm-content {
+  font-size: 15px;
+  line-height: 1.8;
+  color: var(--text);
+}
+
+/* Markdown 渲染样式 */
+.llm-content h2 {
+  font-size: 18px;
+  color: var(--primary-dark);
+  margin: 18px 0 10px;
+  padding-bottom: 6px;
+  border-bottom: 2px solid var(--accent);
+}
+.llm-content h3 {
+  font-size: 16px;
+  color: var(--text);
+  margin: 14px 0 8px;
+}
+.llm-content h4 {
+  font-size: 15px;
+  color: var(--text-secondary);
+  margin: 12px 0 6px;
+}
+.llm-content p { margin: 8px 0; }
+.llm-content ul, .llm-content ol { margin: 8px 0; padding-left: 22px; }
+.llm-content li { margin: 4px 0; }
+.llm-content strong { color: var(--primary-dark); }
+.llm-content code {
+  background: #f3f4f6;
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-size: 13px;
+}
+.llm-content blockquote {
+  border-left: 4px solid var(--primary-light);
+  padding: 8px 14px;
+  margin: 10px 0;
+  background: #f8fafc;
+  border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+}
+
+/* 政策依据行高亮 */
+.llm-content .policy-ref-line {
+  display: block;
+  background: #fef3c7;
+  border-left: 4px solid #f59e0b;
+  padding: 6px 12px;
+  margin: 8px 0;
+  border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+  font-size: 13px;
+  color: #92400e;
+}
+
+.llm-answer .llm-disclaimer {
+  margin-top: 16px;
+  padding-top: 12px;
+  border-top: 1px dashed var(--border);
+  font-size: 12px;
+  color: var(--text-secondary);
+  text-align: center;
+}
+
+/* LLM加载动画 */
+.llm-loading {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 18px 20px;
+  background: linear-gradient(135deg, #f0f9ff, #faf5ff);
+  border: 2px solid var(--primary-light);
+  border-radius: var(--radius);
+  margin: 16px 0;
+}
+.llm-loading .spinner-dots {
+  display: flex;
+  gap: 5px;
+}
+.llm-loading .spinner-dots span {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--primary);
+  animation: dotPulse 1.4s infinite ease-in-out;
+}
+.llm-loading .spinner-dots span:nth-child(2) { animation-delay: 0.2s; }
+.llm-loading .spinner-dots span:nth-child(3) { animation-delay: 0.4s; }
+@keyframes dotPulse {
+  0%, 80%, 100% { transform: scale(0.6); opacity: 0.5; }
+  40% { transform: scale(1); opacity: 1; }
+}
+.llm-loading .loading-text {
+  font-size: 14px;
+  color: var(--primary-dark);
+  font-weight: 500;
+}
+
+/* LLM错误提示 */
+.llm-error {
+  background: #fef2f2;
+  border: 1px solid #fecaca;
+  border-radius: var(--radius);
+  padding: 16px;
+  margin: 16px 0;
+  font-size: 14px;
+  color: #dc2626;
+}
+.llm-error .error-title { font-weight: 600; margin-bottom: 6px; }
+.llm-error .error-detail { font-size: 13px; color: #991b1b; }
 </style>
 </head>
 <body>
@@ -270,6 +547,40 @@ body{
         <button class="header-btn" onclick="exportConversation()">📥 导出</button>
     </div>
 </header>
+
+<!-- LLM 设置按钮 -->
+<button class="settings-toggle" id="settings-toggle" onclick="toggleSettings()">⚙️</button>
+<div class="settings-panel" id="settings-panel">
+    <h3>AI 大模型设置</h3>
+    
+    <div class="settings-group">
+        <label for="api-url">API 地址</label>
+        <input type="text" id="api-url" placeholder="https://api.deepseek.com/v1/chat/completions">
+    </div>
+    
+    <div class="settings-group">
+        <label for="api-key">API Key</label>
+        <input type="password" id="api-key" placeholder="输入您的 API Key">
+    </div>
+    
+    <div class="settings-group">
+        <label for="model-name">模型名称</label>
+        <input type="text" id="model-name" placeholder="deepseek-chat">
+    </div>
+    
+    <div class="ai-toggle-wrapper">
+        <div class="toggle-label">启用 AI 生成</div>
+        <label class="toggle-switch">
+            <input type="checkbox" id="ai-enabled">
+            <span class="toggle-slider"></span>
+        </label>
+    </div>
+    
+    <div class="settings-actions">
+        <button class="btn-primary" onclick="saveLLMSettings()">保存设置</button>
+        <button class="btn-secondary" onclick="toggleSettings()">取消</button>
+    </div>
+</div>
 
 <!-- 侧边栏遮罩 -->
 <div class="sidebar-overlay" id="sidebar-overlay" onclick="closeSidebar()"></div>
@@ -542,6 +853,7 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('stats-chunks').textContent = POLICY_DATA.total_chunks;
     document.getElementById('stats-files').textContent = POLICY_DATA.total_files;
     renderTopics();
+    loadLLMSettings();
     
     // 绑定事件监听器
     document.getElementById('send-btn').addEventListener('click', sendMessage);
@@ -632,6 +944,139 @@ class BM25Search {
 }
 
 const bm25 = new BM25Search(POLICY_DATA.bm25_index);
+
+// ==================== LLM 配置管理 ====================
+const LLM_DEFAULTS = {
+    apiUrl: 'https://api.deepseek.com/v1/chat/completions',
+    apiKey: '',
+    model: 'deepseek-chat',
+    enabled: false
+};
+
+function loadLLMSettings() {
+    try {
+        const saved = JSON.parse(localStorage.getItem('policy_llm_settings') || '{}');
+        const settings = { ...LLM_DEFAULTS, ...saved };
+        document.getElementById('api-url').value = settings.apiUrl;
+        document.getElementById('api-key').value = settings.apiKey;
+        document.getElementById('model-name').value = settings.model;
+        document.getElementById('ai-enabled').checked = settings.enabled;
+        return settings;
+    } catch (e) {
+        return { ...LLM_DEFAULTS };
+    }
+}
+
+function saveLLMSettings() {
+    const settings = {
+        apiUrl: document.getElementById('api-url').value.trim() || LLM_DEFAULTS.apiUrl,
+        apiKey: document.getElementById('api-key').value.trim(),
+        model: document.getElementById('model-name').value.trim() || LLM_DEFAULTS.model,
+        enabled: document.getElementById('ai-enabled').checked
+    };
+    localStorage.setItem('policy_llm_settings', JSON.stringify(settings));
+    toggleSettings();
+    if (settings.enabled && settings.apiKey) {
+        showToast('设置已保存，AI 生成已启用');
+    } else if (settings.enabled && !settings.apiKey) {
+        showToast('设置已保存，但缺少 API Key，AI 功能不可用');
+    } else {
+        showToast('设置已保存');
+    }
+}
+
+function toggleSettings() {
+    const panel = document.getElementById('settings-panel');
+    const toggle = document.getElementById('settings-toggle');
+    panel.classList.toggle('visible');
+    toggle.classList.toggle('active');
+}
+
+// ==================== LLM API 调用 ====================
+async function callLLM(query, contextChunks) {
+    const settings = loadLLMSettings();
+    
+    if (!settings.enabled || !settings.apiKey) {
+        return null;
+    }
+    
+    // 构建系统提示词
+    const systemPrompt = `你是一位专业的北京城市更新政策专家，能够精准解读、高效查询并清晰输出系统内置的截至2026年5月的北京市有关"城市更新"的全部政策文件、规范指引及配套要求，为用户提供权威、准确、结构化的政策解读服务。
+
+你必须严格遵守以下回答规则：
+1. 仅基于提供的政策文件原文回答，不得编造任何不存在于原文的条款编号、金额、比例或任何具体数据。
+2. 按主题分类组织回答（如：一、老旧小区改造类；二、历史风貌保护类；三、产业园区升级类等），每个类别下细分具体条目。
+3. 每条回答末尾标注"🔖 政策依据：具体文件名 + 条款编号"。如果原文中没有明确的条款编号，只标注文件名。
+4. 复杂政策可分点对比分析，使用清晰的层级结构。
+5. 拒绝回答非北京城市更新政策相关问题，回复"我是北京城市更新政策专家助手，仅能回答北京市城市更新相关政策问题。"
+6. 所有回答严格基于内置政策文件原文，不编造、不推测、不添加外部信息。
+7. 如果提供的政策文件原文中没有足够信息回答用户问题，明确告知用户"根据当前政策文件内容，未能查询到相关信息"，不得强行拼凑答案。`;
+    
+    // 构建用户消息
+    const chunkTexts = contextChunks.map((c, i) => {
+        const source = c.chunk.source;
+        const text = c.chunk.text.substring(0, 800);
+        return `【${source}】${text}...`;
+    }).join('\n\n---\n\n');
+    
+    const userMessage = `用户问题：${query}
+
+以下是从政策文件数据库中检索到的相关政策文件原文：
+---
+${chunkTexts}
+---
+
+请基于以上政策文件原文，按政策专家角色回答用户问题。`;
+    
+    const requestBody = {
+        model: settings.model,
+        messages: [
+            { role: "system", content: systemPrompt },
+            { role: "user", content: userMessage }
+        ],
+        temperature: 0.3,
+        max_tokens: 4096
+    };
+    
+    try {
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 30000);
+        
+        const response = await fetch(settings.apiUrl, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${settings.apiKey}`
+            },
+            body: JSON.stringify(requestBody),
+            signal: controller.signal
+        });
+        
+        clearTimeout(timeoutId);
+        
+        if (!response.ok) {
+            let errorMsg = 'API 请求失败';
+            if (response.status === 401 || response.status === 403) {
+                errorMsg = 'API Key 无效或权限不足';
+            } else if (response.status === 429) {
+                errorMsg = '请求过于频繁，请稍后重试';
+            } else {
+                errorMsg = `HTTP ${response.status}: ${response.statusText}`;
+            }
+            throw new Error(errorMsg);
+        }
+        
+        const data = await response.json();
+        return data.choices?.[0]?.message?.content || null;
+        
+    } catch (error) {
+        console.error('LLM API 调用失败:', error);
+        if (error.name === 'AbortError') {
+            throw new Error('请求超时（30秒），请检查网络或稍后重试');
+        }
+        throw error;
+    }
+}
 
 // ==================== 关键词提取函数 ====================
 function extractKeywords(query) {
@@ -790,7 +1235,7 @@ function smartTruncate(text, maxLen) {
 }
 
 // ==================== 检索增强问答（专家版） ====================
-function retrieveAndAnswer(query) {
+async function retrieveAndAnswer(query, useLLM = true) {
     console.log('retrieveAndAnswer called with query:', query);
 
     // 第一步：非北京城市更新问题拒绝
@@ -865,13 +1310,90 @@ function retrieveAndAnswer(query) {
         };
     }
 
-    // 取top 5
+    // 取top 10用于LLM（如果启用）
+    const top10 = filteredChunks.slice(0, 10);
     const top5 = filteredChunks.slice(0, 5);
 
     // 提取问题关键词
     const queryKeywords = extractKeywords(query);
 
-    // 构建答案
+    // 检查是否应该使用LLM
+    const settings = loadLLMSettings();
+    const shouldUseLLM = useLLM && settings.enabled && settings.apiKey;
+    
+    // 如果启用LLM，先尝试调用LLM
+    if (shouldUseLLM) {
+        try {
+            console.log('尝试调用LLM API...');
+            const llmResponse = await callLLM(query, top10);
+            
+            if (llmResponse) {
+                // 构建来源列表
+                const sources = [];
+                const bySource = {};
+                top5.forEach(({chunk, score}) => {
+                    if (!bySource[chunk.source]) {
+                        bySource[chunk.source] = { chunks: [], topic: chunk.topic, folder: chunk.folder };
+                    }
+                    bySource[chunk.source].chunks.push({ text: chunk.text, score: score, chunkIndex: chunk.chunk_index });
+                });
+
+                for (const [source, info] of Object.entries(bySource)) {
+                    const bestScore = Math.max(...info.chunks.map(c => c.score));
+                    const maxScore = Math.max(...top5.map(c => c.score));
+                    const relPct = Math.round((bestScore / maxScore) * 100);
+                    sources.push({
+                        source: source,
+                        topic: info.topic,
+                        relevance: relPct,
+                        chunkCount: info.chunks.length
+                    });
+                }
+
+                // 构建LLM格式答案
+                const llmAnswer = `
+<div class="llm-answer">
+    <div class="llm-badge">🤖 AI 生成回答</div>
+    <div class="llm-content">${llmResponse}</div>
+    <div class="llm-disclaimer">此回答由AI生成，基于检索到的政策文件原文，仅供参考。</div>
+</div>`;
+
+                return { 
+                    answer: llmAnswer, 
+                    sources: sources, 
+                    topChunks: top5, 
+                    keywords: queryKeywords,
+                    isLLM: true 
+                };
+            }
+        } catch (error) {
+            console.error('LLM调用失败，回退到BM25模式:', error);
+            // 显示错误提示，但继续使用BM25模式
+            const errorMsg = error.message || 'AI生成失败';
+            const errorHtml = `
+<div class="llm-error">
+    <div class="error-title">⚠️ AI生成失败</div>
+    <div class="error-detail">${escapeHtml(errorMsg)}，已回退到原文检索模式。</div>
+</div>`;
+            // 继续执行BM25模式，在结果前添加错误提示
+            const bm25Result = generateBM25Answer(query, top5, queryKeywords);
+            return {
+                answer: errorHtml + bm25Result.answer,
+                sources: bm25Result.sources,
+                topChunks: top5,
+                keywords: queryKeywords,
+                isLLM: false
+            };
+        }
+    }
+
+    // 未启用LLM或LLM失败，使用BM25模式
+    return generateBM25Answer(query, top5, queryKeywords);
+}
+
+// ==================== BM25 答案生成（独立函数） ====================
+function generateBM25Answer(query, topChunks, queryKeywords) {
+    const top5 = topChunks.slice(0, 5);
     const answerParts = [];
     const sources = [];
 
@@ -1014,7 +1536,7 @@ function retrieveAndAnswer(query) {
 }
 
 // ==================== UI 交互函数 ====================
-function sendMessage() {
+async function sendMessage() {
     console.log('sendMessage called');
     const input = document.getElementById('chat-input');
     const query = input.value.trim();
@@ -1028,22 +1550,35 @@ function sendMessage() {
     document.getElementById('send-btn').disabled = true;
     isLoading = true;
 
+    // 检查是否启用LLM
+    const settings = loadLLMSettings();
+    const useLLM = settings.enabled && settings.apiKey;
+    
     // 显示加载状态
     const loadingDiv = document.createElement('div');
-    loadingDiv.className = 'loading-indicator';
-    loadingDiv.innerHTML = `
-        <div class="spinner"></div>
-        <span>正在检索政策数据库...</span>
-    `;
+    if (useLLM) {
+        loadingDiv.className = 'llm-loading';
+        loadingDiv.innerHTML = `
+            <div class="spinner-dots">
+                <span></span><span></span><span></span>
+            </div>
+            <div class="loading-text">正在生成专业回答...</div>
+        `;
+    } else {
+        loadingDiv.className = 'loading-indicator';
+        loadingDiv.innerHTML = `
+            <div class="spinner"></div>
+            <span>正在检索政策数据库...</span>
+        `;
+    }
     document.getElementById('chat-messages').appendChild(loadingDiv);
     document.getElementById('chat-messages').scrollTop = document.getElementById('chat-messages').scrollHeight;
 
-    // 模拟短暂延迟
-    setTimeout(() => {
-        const result = retrieveAndAnswer(query);
+    try {
+        const result = await retrieveAndAnswer(query, useLLM);
         
         // 移除加载状态
-        const loadingIndicator = document.querySelector('.loading-indicator');
+        const loadingIndicator = document.querySelector('.loading-indicator, .llm-loading');
         if (loadingIndicator) loadingIndicator.remove();
 
         const assistantDiv = appendMessage('assistant', result.answer);
@@ -1052,10 +1587,26 @@ function sendMessage() {
             appendSources(assistantDiv, result.sources);
         }
 
+    } catch (error) {
+        console.error('回答生成失败:', error);
+        
+        // 移除加载状态
+        const loadingIndicator = document.querySelector('.loading-indicator, .llm-loading');
+        if (loadingIndicator) loadingIndicator.remove();
+        
+        // 显示错误消息
+        const errorHtml = `
+<div class="llm-error">
+    <div class="error-title">⚠️ 系统错误</div>
+    <div class="error-detail">生成回答时发生错误：${escapeHtml(error.message || '未知错误')}</div>
+</div>`;
+        appendMessage('assistant', errorHtml);
+        
+    } finally {
         document.getElementById('send-btn').disabled = false;
         document.getElementById('chat-input').focus();
         isLoading = false;
-    }, 500);
+    }
 }
 
 function appendMessage(role, content) {
